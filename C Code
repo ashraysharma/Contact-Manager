@@ -1,0 +1,350 @@
+/*----------------------------------------------------------------------------*/
+/* Define libraries to be included */
+#include <stdio.h>
+#include <malloc.h>
+#include <string.h>
+#include <ctype.h>
+/*----------------------------------------------------------------------------*/
+/* Define Functions*/
+void clearInput(void);
+void addNew_contact(void);
+void list_all(void);
+void delete_contact(void);
+void modify_contact(void);
+int find_contact(void);
+int prompt(void);
+int findnum (int);
+/*----------------------------------------------------------------------------*/
+/* Define Structures*/
+typedef struct contact {
+    int number;        /*unique account number*/
+    char name[20];     /*contains name*/
+    char phone[15];    /*contains phone number*/
+    char email[20];           /*contains email address*/
+    struct contact *next; /*next is used to navigate through structures.*/
+    int count;     /*count is used to input comments into array*/
+    } Contact;
+Contact *first_contact,*current_contact,*new_contact; /*pointers*/
+/* first_contact is used to point to first contact in list
+current_contact points to current contact in list
+new_contact contains address of new structure/node
+*/
+int acc_number = 0; /*gives unique account numbers*/
+/*----------------------------------------------------------------------------*/
+/* Main Function */
+int main()
+{
+    FILE *datafile;
+    char *filename = "contactdatabase.dat";/*declare file name*/
+    char ch;
+    first_contact = NULL;
+    datafile = fopen(filename,"r");/* open file for reading*/
+
+    if(datafile)
+    {
+	    first_contact = (struct contact *)malloc(sizeof(struct contact));
+    /*use of malloc to set aside memory relative to size of structure contact*/
+	    current_contact = first_contact;       /*make first contact current*/
+	    while(1) /*endless while loop. a NULL pointer in final node ends loop*/
+     	    {
+		    new_contact = (struct contact *)malloc(sizeof(struct contact));
+		    fread(current_contact,sizeof(struct contact),1,datafile);
+		    if(current_contact->next == NULL)   /* NULL indicates end of node list*/
+			    break;
+		    current_contact->next = new_contact;       /* pointer referencing next node*/
+            current_contact->count=0;           /* initiates count for comments*/
+		    current_contact = new_contact;             /* make current contact new*/
+	    }
+	    fclose(datafile);                /* close file - good practice to cloe files after use*/
+	    acc_number = current_contact->number;
+
+    }
+
+    do
+    {
+	fflush(stdin);
+        printf("\n\t\t\tWelcome To The Contact Database\n");/* print menu messages*/
+        printf("\t\t\t-------------------------------\n");
+        printf("\t1 - Add a new contact\n");
+	printf("\t2 - Delete contact\n");
+	printf("\t3 - List all contacts\n");
+	printf("\t4 - Modify contact\n");
+	printf("\t5 - Find a contact by name\n");
+	printf("\t\t\t-------------------------------\n");
+        printf("Q - Save and quit");
+        printf("\tYour choice:");
+        ch = getchar();
+	    ch = toupper(ch);/*changes user input case to upper case*/
+        switch(ch)     /*stores in ch variable.*/
+        {
+            case '1':
+                printf("Add a new contact\n");
+	        fflush(stdin);
+                addNew_contact();//call addNew_contactontact function
+                break;
+	    case '2':
+		printf("Delete a contact\n");
+		delete_contact();
+		break;
+	    case '3':
+		printf("List all contacts\n");
+		list_all();
+		break;
+	    case '4':
+		printf("Modify a contact\n");
+		modify_contact();
+		break;
+	    case '5':
+		printf("Find a contact by name\n");
+		find_contact();
+		break;
+            case 'Q':
+                printf("Save and quit\n");
+                default:
+                break;
+        }
+    }
+    while(ch != 'Q');
+/*
+ * Save the contacts to disk
+ */
+    current_contact = first_contact;
+
+    if(current_contact == NULL)
+	    return(0);		/*no data to write*/
+
+    datafile = fopen(filename,"w");   /*open file to write*/
+
+    if(datafile == NULL)
+    {
+	    printf("Error writing to %s\n",filename);
+	    return(1);
+    }
+    				/* Write each contact to disk*/
+    while(current_contact != NULL)
+    {
+	    fwrite(current_contact,sizeof(struct contact),1,datafile);
+	    current_contact = current_contact->next;
+    }
+    fclose(datafile);             /*closes data file*/
+    return(0);
+}
+/*----------------------------------------------------------------------------*/
+void addNew_contact(void) /* add new contact function*/
+{
+    new_contact = (struct contact *)malloc(sizeof(struct contact));
+    /*allocates memory for new structure.*/
+/*
+ * Checks to see whether this is the first contact in file
+ * If so, then all pointers are initialized to this contact,
+ */
+    if(first_contact==NULL)
+        first_contact = current_contact = new_contact;
+/*
+ * if not, end of structure list is obtained
+ */
+    else
+    {
+        current_contact = first_contact;      /* make the first contact the current one*/
+
+        while(current_contact->next != NULL)
+
+		current_contact = current_contact->next;
+                                /* and loop through all contacts*/
+        current_contact->next = new_contact;  /* pointer to next node */
+        current_contact = new_contact;        /* make current contact the new one*/
+    }
+/* update the structure */
+    acc_number++;
+    printf("%27s: %5i\n","Contact number",acc_number);
+    current_contact->number = acc_number;    /*acc_number is used to give unique account numbers*/
+
+    printf("%27s:","Enter contact name");
+    gets(current_contact->name);
+    printf("%27s: ","Enter contact Phone number");
+    gets(current_contact->phone);
+    printf("%27s: ","Enter contact email");
+    gets(current_contact->email);
+    printf("contact added!\n");
+    current_contact->count=0;
+/*
+ * gives the new contact a NULL pointer
+ * to show it's the last contact:
+ */
+    current_contact->next = NULL;
+}
+/*----------------------------------------------------------------------------*/
+void list_all(void) /* list all contacts function*/
+{
+    if(first_contact==NULL)
+        printf("There are no contacts to display!\n"); /*prints message*/
+
+    else
+    {
+	    printf("%6s %-20s %-15s %-15s\n","Acct#","Name","Phone","Email");
+        printf("------ -------------------- ------------- -------------------\n");
+                            /*prints table titles*/
+        current_contact=first_contact;
+
+        do
+        {
+
+                printf("%6d: %-20s %-15s %-20s\n",
+                current_contact->number,
+                current_contact->name,
+                current_contact->phone,
+                current_contact->email);
+                /*prints values of number, name, phone and email*/
+        }
+
+        while((current_contact=current_contact->next) != NULL);
+    }
+}
+/*----------------------------------------------------------------------------*/
+void delete_contact(void)     /*delete contact function */
+{
+    int contact;
+    struct contact *previousa;
+    if(first_contact==NULL)
+    {
+        printf("There are no contacts to delete!");
+	return;
+    }
+
+    list_all();		/* show all contacts*/
+    printf("Enter contact account number to delete: ");
+    scanf("%d",&contact);
+    current_contact = first_contact;
+
+    while(current_contact != NULL)
+    {
+        if(current_contact->number == contact)
+	{
+	    if(current_contact == first_contact)	/*if contact to be deleted is the first contact*/
+		first_contact=current_contact->next; /*reset first_contact to point at next contact as first*/
+	    else
+		previousa->next = current_contact->next;/*previous pointer used if contact*/
+                                         /*to delete is not the first*/
+        free(current_contact); /*frees memory <deletes>*/
+	    printf("contact %d deleted!\n",contact);
+	    return;
+	}
+
+	else
+	{
+        previousa = current_contact;
+	    current_contact = current_contact->next;
+	}
+    }
+    printf("contact %d not found!\n",contact);
+ }
+/*----------------------------------------------------------------------------*/
+void modify_contact(void)   /*modify contact function*/
+{
+    int contact, result;
+    if(first_contact==NULL)
+    {
+        printf("There are no contacts to modify!");
+	return;
+    }
+
+    list_all();		/* show all contacts */
+    printf("Enter contact account number to modify or change: ");
+    scanf("%d",&contact);  /*scan user input to contact*/
+    result = findnum(contact);
+
+    if( result >0 ){
+	    printf("Contact %d:\n",current_contact->number);
+	    printf("Name: %s\n",current_contact->name);
+	    if(prompt())
+		    gets(current_contact->name);
+	    printf("Phone: %s\n",current_contact->phone);
+	    if(prompt())
+		    gets(current_contact->phone);
+	    printf("Email: %s\n",current_contact->email);
+	    if(prompt())
+		    gets(current_contact->email);
+	    return;
+	}
+    printf("contact %d was not found!\n",contact);
+}
+/*----------------------------------------------------------------------------*/
+int findnum (int contactnum)
+{
+    int contact;
+    contact = contactnum;
+    current_contact = first_contact;
+    while(current_contact != NULL)
+    {
+
+        if(current_contact->number == contact)
+	     {
+           return 1;
+         }
+
+	else
+	{
+	    current_contact = current_contact->next;
+	}
+    }
+    return -1;
+}
+/*----------------------------------------------------------------------------*/
+int find_contact(void) /* find contact function*/
+{
+     char buff[20];
+
+     if(first_contact==NULL)
+	{
+        printf("There are no contacts to find!");
+	    return 1;
+    }
+
+    printf("Enter contact name: ");
+    fflush(stdin);/*clears any text from the input stream*/
+    gets(buff);
+
+    current_contact = first_contact;
+    while(current_contact != NULL)
+    {
+        if( strcmp(current_contact->name, buff) == 0 )
+	    {
+			printf("%6s %-20s %-15s %-15s\n","Acct#","Name","Phone","Email");
+			/*prints table titles*/
+            printf("%6d: %-20s %-15s %-20s\n",
+            current_contact->number,
+            current_contact->name,
+            current_contact->phone,
+            current_contact->email);
+            /*prints values of number, name, phone and email*/
+
+			return 0;
+	    }
+		else
+		{
+			current_contact = current_contact->next;
+		}
+    }
+    printf("contact %s was not found!\n",buff);
+          return 1;
+}
+/*----------------------------------------------------------------------------*/
+int prompt(void)
+{
+	char ch;
+    fflush(stdin);
+	printf("Update? (Y to update any other key to not)");
+	ch = getchar();
+	ch = toupper(ch);
+	fflush(stdin);
+	if(ch == 'Y')
+	{
+		printf("Enter new value: ");
+		return(1);
+	}
+	else
+		return(0);
+}
+/*----------------------------------------------------------------------------*/
+/* END OF PROGRAM */
+
